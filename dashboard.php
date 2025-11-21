@@ -1,229 +1,196 @@
 <?php
 session_start();
 
-// Jika belum login, arahkan kembali ke login
 if (!isset($_SESSION['username'])) {
     header("Location: index.php");
     exit();
 }
 
-// Data produk
-$kode_barang  = ["B01", "B02", "B03", "B04", "B05"];
-$nama_barang  = ["Susu", "Snack", "Roti", "Sabun", "Teh"];
-$harga_barang = [11000, 10000, 12000, 8000, 5000];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $kode   = $_POST['kode']   ?? '';
+    $nama   = $_POST['nama']   ?? '';
+    $harga  = (int)($_POST['harga']   ?? 0);
+    $qty    = (int)($_POST['jumlah']  ?? 0);  
 
-// Data belanja acak
-$beli = [];
-$grandtotal = 0;
+    $lineTotal   = $harga * $qty;
+    $grandtotal  = $lineTotal;
 
-for ($i = 0; $i < 5; $i++) {
-    $index = rand(0, count($kode_barang) - 1);
-    $jumlah = rand(1, 3);
-    $total = $harga_barang[$index] * $jumlah;
-    $grandtotal += $total;
+    if ($grandtotal == 0) {
+        $d = "0%";
+        $diskon = 0;
+    } elseif ($grandtotal < 50000) {
+        $d = "5%";
+        $diskon = 0.05 * $grandtotal;
+    } elseif ($grandtotal <= 100000) {
+        $d = "10%";
+        $diskon = 0.10 * $grandtotal;
+    } else {
+        $d = "15%";
+        $diskon = 0.15 * $grandtotal;
+    }
 
-    $beli[] = [
-        "kode" => $kode_barang[$index],
-        "nama" => $nama_barang[$index],
-        "harga" => $harga_barang[$index],
-        "jumlah" => $jumlah,
-        "total" => $total
-    ];
+    $totalbayar = $grandtotal - $diskon;
 }
-
-// ===== Perhitungan Diskon =====
-$diskon_persen = 0;
-if ($grandtotal >= 50000) {
-    $diskon_persen = 15;
-} elseif ($grandtotal >= 50000) {
-    $diskon_persen = 10;
-}
-
-$diskon = ($diskon_persen / 100) * $grandtotal;
-$total_bayar = $grandtotal - $diskon;
 ?>
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Dashboard - POLGAN MART</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Halaman Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #F5F6FDFF;
+            background: linear-gradient(to bottom, #f0f8ff, #e6e6fa);
             margin: 0;
-            padding: 0;
+            padding: 20px;
+            color: #333;
         }
-
-        /* ===== HEADER STYLE ===== */
-        header {
-            background-color: #F5F6FDFFF;
-            color: Black;
-            padding: 15px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo {
-            background-color: #007bff;
-            color: white;
-            font-weight: bold;
-            font-size: 22px;
-            width: 55px;
-            height: 55px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-            border: 2px solid #0056b3;
-            font-family: 'Arial Black', sans-serif;
-        }
-
-        .logo-text {
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-
-        .user-info {
-            text-align: right;
-            line-height: 1.5;
-        }
-
-        .user-info p {
-            margin: 0;
-            font-weight: bold;
-        }
-
-        .logout-btn {
-            display: inline-block;
-            margin-top: 5px;
-            color: #110806FF;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .logout-btn:hover {
-            text-decoration: underline;
-        }
-
-        /* ===== BODY CONTENT ===== */
         .container {
-            width: 80%;
-            margin: 30px auto;
-            background-color: white;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
-
-        h2, h3 {
+        h1 {
             text-align: center;
+            color: #4CAF50;
+            margin-bottom: 20px;
         }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th {
-            background-color: #273c75;
-            color: white;
-            padding: 10px;
-        }
-
-        td {
-            padding: 10px;
+        p {
             text-align: center;
-            border-bottom: 1px solid #ddd;
-        }
-
-        tr:hover {
-            background-color: #f1f2f6;
-        }
-
-        .total {
-            text-align: right;
-            font-weight: bold;
             font-size: 18px;
-            margin-top: 15px;
+            margin-bottom: 20px;
         }
-
-        .diskon {
-            text-align: right;
-            font-weight: bold;
-            color: Black;
+        .logout-btn {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
             font-size: 16px;
         }
-
-        .bayar {
-            text-align: right;
+        .logout-btn:hover {
+            background-color: #d32f2f;
+        }
+        .shopping-list {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+        }
+        .item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .item:last-child {
+            border-bottom: none;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e8f5e8;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .summary p {
+            margin: 5px 0;
             font-weight: bold;
-            color: Black;
-            font-size: 18px;
+        }
+        form div {
+            margin-bottom: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button[type="submit"] {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button[type="submit"]:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>--POLGAN MART--</h1>
+        <p>SELAMAT DATANG TUAN <?php echo htmlspecialchars($_SESSION['username']); ?>!</p>
+        <a href="logout.php"><button class="logout-btn">Logout</button></a>
+        
+        <form method="post">
+            <div>
+                <label>Kode Barang</label><br>
+                <input type="text" name="kode" value="<?php echo htmlspecialchars($_POST['kode'] ?? ''); ?>">
+            </div>
+            <div>
+                <label>Nama Barang</label><br>
+                <input type="text" name="nama" value="<?php echo htmlspecialchars($_POST['nama'] ?? ''); ?>">
+            </div>
+            <div>
+                <label>Harga</label><br>
+                <input type="number" name="harga" min="0" value="<?php echo htmlspecialchars($_POST['harga'] ?? ''); ?>">
+            </div>
+            <div>
+                <label>Jumlah</label><br>
+                <input type="number" name="jumlah" min="1" value="<?php echo htmlspecialchars($_POST['jumlah'] ?? 1); ?>">
+            </div>
+            <div style="margin-top:8px;">
+                <button type="submit">Kirim</button>
+            </div>
+        </form>
 
-<header>
-    <div class="logo-container">
-        <div class="logo">PM</div>
-        <div class="logo-text">--POLGAN MART--</div>
+        <?php if ($_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        <h2>Daftar Pembelian</h2>
+        <table border="1" cellpadding="6" cellspacing="0">
+            <thead>
+                <tr>
+                    <th>Kode</th>
+                    <th>Nama Barang</th>
+                    <th>Harga (Rp)</th>
+                    <th>Jumlah</th>
+                    <th>Total Baris (Rp)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><?php echo htmlspecialchars($kode); ?></td>
+                    <td><?php echo htmlspecialchars($nama); ?></td>
+                    <td style="text-align:right;"><?php echo number_format($harga, 0, ',', '.'); ?></td>
+                    <td style="text-align:center;"><?php echo htmlspecialchars($qty); ?></td>
+                    <td style="text-align:right;"><?php echo number_format($lineTotal, 0, ',', '.'); ?></td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" style="text-align:right;"><strong>Subtotal</strong></td>
+                    <td style="text-align:right;"><?php echo number_format($grandtotal, 0, ',', '.'); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="text-align:right;"><strong>Diskon (<?php echo htmlspecialchars($d); ?>)</strong></td>
+                    <td style="text-align:right;"><?php echo number_format($diskon, 0, ',', '.'); ?></td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="text-align:right;"><strong>Total Bayar</strong></td>
+                    <td style="text-align:right;"><?php echo number_format($totalbayar, 0, ',', '.'); ?></td>
+                </tr>
+            </tfoot>
+        </table>
+        <?php endif; ?>
     </div>
-
-    <div class="user-info">
-        <p>Selamat Datang, <b><?= htmlspecialchars($_SESSION['username']) ?></b></p>
-        <a class="logout-btn" href="logout.php">Logout</a>
-    </div>
-</header>
-
-<div class="container">
-    <h3>Daftar Pembelian</h3>
-
-    <table>
-        <tr>
-            <th>Kode Barang</th>
-            <th>Nama Barang</th>
-            <th>Harga</th>
-            <th>Jumlah</th>
-            <th>Total</th>
-        </tr>
-
-        <?php foreach ($beli as $item): ?>
-        <tr>
-            <td><?= htmlspecialchars($item["kode"]) ?></td>
-            <td><?= htmlspecialchars($item["nama"]) ?></td>
-            <td>Rp <?= number_format($item["harga"], 0, ',', '.') ?></td>
-            <td><?= $item["jumlah"] ?></td>
-            <td>Rp <?= number_format($item["total"], 0, ',', '.') ?></td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-
-    <p class="total">
-        Total Belanja: 
-        <span style="color:#0A0301FF;">Rp <?= number_format($grandtotal, 0, ',', '.') ?></span>
-    </p>
-
-    <p class="diskon">
-        Diskon (<?= $diskon_persen ?>%): 
-        <span>Rp <?= number_format($diskon, 0, ',', '.') ?></span>
-    </p>
-
-    <p class="bayar">
-        Total Bayar: 
-        <span>Rp <?= number_format($total_bayar, 0, ',', '.') ?></span>
-    </p>
-</div>
-
 </body>
 </html>
